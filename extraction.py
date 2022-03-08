@@ -227,6 +227,8 @@ def main():
     print(f"======== top sample by ratio of Zlib entropy and XL perplexity: ========")
     print_best(metric, samples, "PPL-XL", scores["XL"], "Zlib", scores["zlib"])
 
+    for k, v in scores.items():
+        scores[k] = list(map(float, v))
     json.dump(scores, open('full_scores.json', "w+"), indent=4)
 
 def parse_arguments(argv):
