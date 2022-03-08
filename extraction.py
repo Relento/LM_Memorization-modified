@@ -124,11 +124,11 @@ def main():
     tokenizer.padding_side = "left" 
     tokenizer.pad_token = tokenizer.eos_token
     print(transformers.__version__)
-    model1 = GPT2LMHeadModel.from_pretrained('gpt2', return_dict=True).to(device)
+    model1 = GPT2LMHeadModel.from_pretrained('gpt2-xl', return_dict=True).to(device)
     model1.config.pad_token_id = model1.config.eos_token_id
-    # model2 = GPT2LMHeadModel.from_pretrained('gpt2', return_dict=True).to(device)
+    model2 = GPT2LMHeadModel.from_pretrained('gpt2', return_dict=True).to(device)
     model1.eval()
-    # model2.eval()
+    model2.eval()
     
     samples = []
     scores = {"XL": [], "S": [], "Lower": [], "zlib": []}
@@ -180,7 +180,7 @@ def main():
             for text in texts:
                 # perplexity of GPT2-XL and GPT2-S
                 p1 = calculatePerplexity(text, model1, tokenizer)
-                # p2 = calculatePerplexity(text, model2, tokenizer)
+                p2 = calculatePerplexity(text, model2, tokenizer)
 
                 # perplexity on lower-case sample
                 p_lower = calculatePerplexity(text.lower(), model1, tokenizer)
@@ -190,14 +190,14 @@ def main():
 
                 samples.append(text)
                 scores["XL"].append(p1.cpu())
-                # scores["S"].append(p2)
+                scores["S"].append(p2)
                 scores["Lower"].append(p_lower.cpu())
                 scores["zlib"].append(zlib_entropy)
 
             pbar.update(args.batch_size)
 
     scores["XL"] = np.asarray([ts.cpu() for ts in scores["XL"]])
-    # scores["S"] = np.asarray(scores["S"])
+    scores["S"] = np.asarray([ts.cpu() for ts in scores["S"]])
     scores["Lower"] = np.asarray([ts.cpu() for ts in scores["Lower"]])
     scores["zlib"] = np.asarray(scores["zlib"])
 
@@ -209,11 +209,11 @@ def main():
     print()
 
     # # Sort by ratio of log perplexities of S and XL models
-    # metric = np.log(scores["S"]) / np.log(scores["XL"])
-    # print(f"======== top sample by ratio of S and XL perplexities: ========")
-    # print_best(metric, samples, "PPL-XL", scores["XL"], "PPL-S", scores["S"])
-    # print()
-    # print()
+    metric = np.log(scores["S"]) / np.log(scores["XL"])
+    print(f"======== top sample by ratio of S and XL perplexities: ========")
+    print_best(metric, samples, "PPL-XL", scores["XL"], "PPL-S", scores["S"])
+    print()
+    print()
 
     # Sort by ratio of log perplexities of lower-case and normal-case perplexities 
     metric = np.log(scores["Lower"]) / np.log(scores["XL"])
