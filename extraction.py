@@ -2,8 +2,9 @@
 Generate samples with GPT-2 and filter out those that are likely to be
 memorized samples from the training set.
 """
-
+import json
 import logging
+import os
 
 import transformers
 
@@ -36,7 +37,7 @@ def print_best(metric, samples, name1, scores1, name2=None, scores2=None, n=10):
     print the `n` best samples according to the given `metric`
     """
     idxs = np.argsort(metric)[::-1][:n]
-    with open("output.txt", 'a+', encoding='utf-8') as f:
+    with open("output.txt", 'w+', encoding='utf-8') as f:
 
         for i, idx in enumerate(idxs):
             if scores2 is not None:
@@ -63,28 +64,29 @@ def parse_commoncrawl(wet_file):
     Quick and ugly parsing of a WET file.
     Tested for the May 2021 crawl.
     """
-    with open(wet_file, encoding='utf-8') as f:
-        with open("all_eng.txt", 'a+', encoding='utf-8') as f2:
+    if not os.path.exists('all_eng.txt'):
+        with open(wet_file, encoding='utf-8') as f:
+            with open("all_eng.txt", 'a+', encoding='utf-8') as f2:
 
-            # lines = f.readlines()
-            line = f.readline()
-            i = 0
-            all_eng = ""
-            start = None
-            while line:
-                if "WARC/1.0" in line:
-                    start = None
-                elif "WARC-Identified-Content-Language: eng" in line:
-                    start = 3
-
-                if start is not None and start ==0:
-                    f2.write(line)
-                elif start is not None:
-                    start = start - 1
+                # lines = f.readlines()
                 line = f.readline()
-                i+=1
-                if i%100000==0:
-                    print("parsed {} lines".format(i))
+                i = 0
+                all_eng = ""
+                start = None
+                while line:
+                    if "WARC/1.0" in line:
+                        start = None
+                    elif "WARC-Identified-Content-Language: eng" in line:
+                        start = 3
+
+                    if start is not None and start ==0:
+                        f2.write(line)
+                    elif start is not None:
+                        start = start - 1
+                    line = f.readline()
+                    i+=1
+                    if i%100000==0:
+                        print("parsed {} lines".format(i))
 
     with open("all_eng.txt", 'r', encoding='utf-8') as f2:
         all_eng = f2.readlines()
@@ -224,6 +226,8 @@ def main():
     metric = scores["zlib"] / np.log(scores["XL"])
     print(f"======== top sample by ratio of Zlib entropy and XL perplexity: ========")
     print_best(metric, samples, "PPL-XL", scores["XL"], "Zlib", scores["zlib"])
+
+    json.dump(scores, open('full_scores.json', "w+"), indent=4)
 
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
